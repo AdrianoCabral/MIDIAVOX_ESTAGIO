@@ -6,3 +6,5 @@ create table TBA_DESTINATION(
     DTN_ID varchar(20) NOT NULL PRIMARY KEY,
     DTN_DESTINATION varchar(10) NOT NULL
 );
+
+insert into TBA_DESTINATION (DTN_ID, DTN_DESTINATION) VALUES('2','3');
