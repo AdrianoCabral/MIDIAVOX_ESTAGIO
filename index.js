@@ -42,28 +42,6 @@ app.get('/destination?',  (request,response) =>{
 
 })
 
-// app.get('/destination/:id',  (request,response) =>{
-// 	console.log('received get_id request');
-// 	$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_ID = ' + request.params.id;
-// 	con.query($query, (err, result, fields) =>{
-// 		if(err){console.error(err);}
-// 		if(result.length == 0) {
-// 			response.status(404).send({message: "Not Found"})
-// 		}else{
-// 			response.json(result);
-// 		}
-// 	});
-// })
-
-// app.get('/destination/destination/:destination',  async (request,response) =>{
-// 	console.log('received get_destination request');
-// 		$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_DESTINATION = ' + request.params.destination; 
-// 		const x = await con.query($query, (err, result, fields) =>{
-// 			if(err) {console.error(err);}
-// 			response.json(result);
-// 		});
-// })
-
 app.delete('/destination/:id',  (request,response) =>{
 	console.log('received delete request');
 	$query = 'DELETE FROM TBA_DESTINATION WHERE DTN_ID = ' + request.params.id; 
@@ -79,9 +57,9 @@ app.delete('/destination/:id',  (request,response) =>{
 app.put('/destination/:id',  async (request,response) =>{
 	console.log('received put request');
 	id = request.params.id;
-	destination = request.body.destination;
-	var flag = false;
-	await fetch(`http://localhost:3000/destination/${id}`,{method: 'GET'})
+	const destination = request.body.destination;
+	url = 'http://localhost:3000/destination/?id='+id+'&destination='
+	await fetch(url,{method: 'GET'})
 	.then(response =>{
 		return response.json();
 	}).then(response =>{
@@ -91,6 +69,7 @@ app.put('/destination/:id',  async (request,response) =>{
 		console.error(err);
 	});
 	if(flag){
+		flag = false;
 		$query = 'UPDATE TBA_DESTINATION SET DTN_DESTINATION = ' + destination + ' WHERE DTN_ID = ' + id; 
 		con.query($query, (err, result, fields) =>{
 			if(err) {console.error(err);}
