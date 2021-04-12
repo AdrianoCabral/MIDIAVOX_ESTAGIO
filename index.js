@@ -1,9 +1,10 @@
 const express = require('express');
 const mysql = require('mysql');
-const Datastore = require('nedb');
+const fetch = require('node-fetch');
 const app = express();
 const fs = require('fs');
 const { CONNREFUSED } = require('dns');
+var flag = false;
 var coords = [];
 app.listen(3000, () => console.log('listening at 3000'));
 app.use(express.static('public'));
@@ -16,56 +17,114 @@ const con = mysql.createConnection({
 		database: 'MIDIAVOX'
 });
 con.connect();
-app.get('/api',  (request,response) =>{
+app.get('/destination?',  (request,response) =>{
 	console.log('received get request');
-	con.query("SELECT * FROM TBA_DESTINATION", (err, result, fields) =>{
-		if(err) {console.error(err);}
-		console.log(result);
-		response.json(result);
-	});
-
-})
-
-app.get('/api/:id',  (request,response) =>{
-	console.log('received get_id request');
-	$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_ID = ' + request.params.id; 
+	id = request.query.id;
+	destination = request.query.destination;
+	$query = "";
+	if(id.length == 0){
+		if(destination.length == 0){
+			$query = "SELECT * FROM TBA_DESTINATION";
+		}else{
+			$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_DESTINATION = ' + destination;
+		}
+	}else{
+		if(destination.length == 0){
+			$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_ID = ' + id
+		}else{
+			$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_ID = ' + id + ' AND DTN_DESTINATION = ' + destination;
+		}
+	}	
 	con.query($query, (err, result, fields) =>{
 		if(err) {console.error(err);}
 		response.json(result);
 	});
+
 })
 
-app.get('/api/destination/:destination',  (request,response) =>{
-	console.log('received get_destination request');
-		$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_DESTINATION = ' + request.params.destination; 
-		con.query($query, (err, result, fields) =>{
-			if(err) {console.error(err);}
-			console.log(result);
-			response.json(result);
-		});
-})
+// app.get('/destination/:id',  (request,response) =>{
+// 	console.log('received get_id request');
+// 	$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_ID = ' + request.params.id;
+// 	con.query($query, (err, result, fields) =>{
+// 		if(err){console.error(err);}
+// 		if(result.length == 0) {
+// 			response.status(404).send({message: "Not Found"})
+// 		}else{
+// 			response.json(result);
+// 		}
+// 	});
+// })
 
-app.delete('/api/:id',  (request,response) =>{
+// app.get('/destination/destination/:destination',  async (request,response) =>{
+// 	console.log('received get_destination request');
+// 		$query = 'SELECT * FROM TBA_DESTINATION WHERE DTN_DESTINATION = ' + request.params.destination; 
+// 		const x = await con.query($query, (err, result, fields) =>{
+// 			if(err) {console.error(err);}
+// 			response.json(result);
+// 		});
+// })
+
+app.delete('/destination/:id',  (request,response) =>{
 	console.log('received delete request');
 	$query = 'DELETE FROM TBA_DESTINATION WHERE DTN_ID = ' + request.params.id; 
 	con.query($query, (err, result, fields) =>{
-		if(err) {console.error(err);}
-		response.json(result);
+		if(err) {
+			response.status(404).send({message: "Not Found"});
+		}else{
+			response.status(204).send({message: "No Content"});
+		}
 	});
 })
 
-app.put('/api/:id',  (request,response) =>{
+app.put('/destination/:id',  async (request,response) =>{
 	console.log('received put request');
-	destination = request.body;
-	$query = 'UPDATE TBA_DESTINATION SET DTN_DESTINATION = ' + destination.destination + ' WHERE DTN_ID = ' +request.params.id; 
-	con.query($query, (err, result, fields) =>{
-		if(err) {console.error(err);}
-		response.json(result);
+	id = request.params.id;
+	destination = request.body.destination;
+	var flag = false;
+	await fetch(`http://localhost:3000/destination/${id}`,{method: 'GET'})
+	.then(response =>{
+		return response.json();
+	}).then(response =>{
+		if(response.length > 0){flag = true};
+	})
+	.catch(err =>{
+		console.error(err);
 	});
+	if(flag){
+		$query = 'UPDATE TBA_DESTINATION SET DTN_DESTINATION = ' + destination + ' WHERE DTN_ID = ' + id; 
+		con.query($query, (err, result, fields) =>{
+			if(err) {console.error(err);}
+			response.status(204).send({message: 'No Content'});
+		});
+	}else{
+		$query = "INSERT INTO TBA_DESTINATION (DTN_ID,DTN_DESTINATION) VALUES (" + id + ', ' + destination + ')';
+		con.query($query, (err, result, fields) =>{
+			if(err) {console.error(err);}
+			response.status(204).send({message: 'No Content'});
+		});
+	}
+
+		
+
 })
 
+// app.post('/destination',   (request,response) =>{
+// 	console.log('received post request');
+// 	data = request.body;
+// 	console.log(data);
+		
+// 	$query = "INSERT INTO TBA_DESTINATION (DTN_ID,DTN_DESTINATION) VALUES (" + data.id + ', ' + data.destination + ')';
+// 	con.query($query, (err) =>{
+// 		if(err) {
+// 			response.status(409).send({message: 'id already exists'});
+// 		}else{
+// 			response.status(204).send({message: 'No Content'});
+// 		}
+// 	})
+// })
 
-// app.put('/api/:id', (request, response) =>{
+
+// app.put('/destination/:id', (request, response) =>{
 // 	console.log('received request');
 // 	const data = request.body;
 
