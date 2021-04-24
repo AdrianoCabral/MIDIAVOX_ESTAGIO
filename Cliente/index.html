@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>module_2_project</title>
+
+    <style>
+        th, td, p, input {
+            font:14px Verdana;
+        }
+        table, th, td 
+        {
+            border: solid 1px #DDD;
+            border-collapse: collapse;
+            padding: 2px 3px;
+            text-align: center;
+			overflow:auto;
+        }
+        th {
+            font-weight:bold;
+        }
+		/* The Modal (background) */
+		.modal {
+			display: none; /* Hidden by default */
+			position: fixed; /* Stay in place */
+			z-index: 1; /* Sit on top */
+			padding-top: 100px; /* Location of the box */
+			left: 0;
+			top: 0;
+			width: 100%; /* Full width */
+			height: 100%; /* Full height */
+			overflow: auto; /* Enable scroll if needed */
+			background-color: rgb(0,0,0); /* Fallback color */
+			background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+		}
+		.close {
+			color: #aaaaaa;
+			float: right;
+			font-size: 28px;
+			font-weight: bold;
+		}
+
+		.close:hover,
+		.close:focus {
+			color: #000;
+			text-decoration: none;
+			cursor: pointer;
+		}
+
+		/* Modal Content */
+		.modal-content {
+			background-color: #fefefe;
+			margin: auto;
+			padding: 20px;
+			border: 1px solid #888;
+			width: 80%;
+		}
+		.styled-table {
+			border-collapse: collapse;
+			margin: 25px 0;
+			font-size: 0.9em;
+			font-family: sans-serif;
+			min-width: 400px;
+			box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+		}
+		.styled-table thead tr {
+			background-color: #009879;
+			color: #ffffff;
+			text-align: left;
+		}
+
+		.styled-table th,
+		.styled-table td {
+			padding: 12px 15px;
+		}
+		.styled-table tbody tr {
+			border-bottom: 1px solid #dddddd;
+		}
+
+		.styled-table tbody tr:nth-of-type(even) {
+			background-color: #f3f3f3;
+		}
+
+		.styled-table tbody tr:last-of-type {
+			border-bottom: 2px solid #009879;
+		}
+
+		.styled-table tbody tr.active-row {
+			font-weight: bold;
+			color: #009879;
+		}
+    </style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+	
+	<script></script>
+	<h1> webservice app</h1>
+	<!-- div dos filtros-->
+	<div>
+		<h2>Filtros</h2>
+		<form>
+			<label for="id">ID:</label><br>
+			<input type ="text" id="id" /><br>
+			<label for="destination">DESTINATION:</label><br>
+			<input type ="text" id="destination"/><br>
+			<input type="button" value="Aplicar" onclick="get()" />
+			<input type="button" value="Limpar" onclick="clean()" />
+		</form>
+	</div>
+
+	<!--div da tabela-->
+	<div>
+		<p id="showData"></p>
+	</div>
+	<!--botão que mostra o modal de criar novo objeto-->
+	<button id="add-button" onClick="show_add_modal()">ADICIONAR</button>
+	<!--botão para salvar o estado atual da tabela em um arquivo csv-->
+	<button id="download-button" onClick="ConvertToCSV()">SALVAR CSV</button>
+	<!--modal de edição de objeto da tabela-->
+	<div id="edit-modal" class="modal">
+		<div class="modal-content">
+			<span class="close" onClick="close_edit_modal()">&times;</span>
+			<label for="edit-modal-destination">DESTINATION:</label>
+			<input type ="text" id="edit-modal-destination"/><br>
+			<button type="input" id = "edit-modal-button" onclick="edit_id()">Confirmar</button>
+		</div>
+	</div>
+	<!--modal de criar novo objeto-->
+	<div id="add-modal" class="modal">
+		<div class="modal-content">
+			<span class="close" onClick="close_add_modal()">&times;</span>
+			<label for="add-modal-id">ID:</label><br>
+			<input type ="text" id="add-modal-id"/><br>
+			<label for="add-modal-destination">DESTINATION:</label><br>
+			<input type ="text" id="add-modal-destination"/><br>
+			<button type="input" id = "add-modal-button" onclick="add_entry()">Confirmar</button>
+		</div>
+	</div>
+</body>
+<script>
+	var data_to_save = "" //variavel que guarda o estado atual da tabela
+
+	function clean(){  //limpa os filtros e faz um get request, mostrando todos os objetos do banco na tabela
+		document.getElementById('id').value = '';
+		document.getElementById('destination').value = '';
+		get();
+	}
+	function get(){ //função que implementa o get request
+
+		id = document.getElementById('id').value; //pegando valores de ID e destination dos filtros inputados pelo usuário
+		destination = document.getElementById('destination').value;
+		url = 'http://localhost:3000/destination/?id='+id+'&destination='+destination; //url do get request
+		fetch(url) //realiza get request na url dada
+		.then(response =>{
+			return response.json(); //se não houve erro, transforma o body da resposta em json
+		}).then(response =>{// atualiza a variável que guarda o estado atual da tabela, e passa o json para a função que desenha a tabela
+			data_to_save = response;
+			draw_table(response);
+		})
+		.catch(err =>{
+			console.error(err);
+		})	
+	}
+	
+	function delete_id(id){ //função que implementa o delete request
+		url = 'http://localhost:3000/destination/' + id.target.value;//url do delete request
+		fetch(url, { //realiza o delete request na url dada
+			method: 'DELETE'
+		}).then( response =>{
+			console.log(response.status);	
+		}).catch( err =>{
+			console.error(err);
+		});
+		get(); //realiza um get para atualizar a tabela em tempo real
+	}
+
+	function edit_id(){ //função que pega os valores de id e destination do modal de edição,fecha o modal e chama a função que implementa o put request
+		id = document.getElementById('edit-modal-button').value;
+		destination = document.getElementById('edit-modal-destination').value;
+		close_edit_modal();
+		put_id(id, destination);
+
+	}
+
+	function add_entry(){ //função que pega os valores de id e destination do modal de criação, fecha o modal e chama a função que implementa o put request
+		id = document.getElementById('add-modal-id').value;
+		destination = document.getElementById('add-modal-destination').value;
+		close_add_modal();
+		data = {id,destination};
+		put_id(id, destination);
+	}
+
+	async function put_id(id, destination){ //função que implementa o put request
+		console.log('id: ' + id, 'destination: ' + destination);
+		data = {destination};
+		console.log(data);
+		url = 'http://localhost:3000/destination/' + id; //url do put request
+		await fetch(url, {//realiza o put request na url dada
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(data)
+		}).then( response =>{
+			console.log(response.status);
+		}).catch( err =>{
+			console.error(err);
+		});
+		get(); //realiza um get para atualizar a tabela em tempo real
+	}
+	function show_edit_modal(id){ //função que mostra o modal de edição
+		modal = document.getElementById('edit-modal');
+		modal.style.display = "block";
+		document.getElementById("edit-modal-button").value = id.target.value; // guarda o id do objeto a ser editado no valor botão do modal de edição
+		
+	}
+
+	function close_edit_modal(){ //função que fecha o modal de edição, limpando o campo de input
+		document.getElementById('edit-modal-destination').value = '';
+		modal = document.getElementById('edit-modal');
+		modal.style.display = "none";
+	}
+
+	function show_add_modal(){//função que mostra o modal de criação
+		modal = document.getElementById('add-modal');
+		modal.style.display = "block";
+	}
+
+	function close_add_modal(){ //função que fecha o modal de criação, limpando o campo de input
+		document.getElementById('add-modal-id').value = '';
+		document.getElementById('add-modal-destination').value = '';
+		modal = document.getElementById('add-modal');
+		modal.style.display = "none";
+	}
+	
+
+	function draw_table(data){ //função que recebe um json e cria a tabela a partir dele
+		var col = [];
+        for (var i = 0; i < data.length; i++) { //pega a quantidade de colunas da tabela
+            for (var key in data[i]) {
+                if (col.indexOf(key) === -1) {
+                    col.push(key);
+                }
+            }
+        }
+
+		var table = document.createElement("table"); //cria a tabela
+		table.classList.add("styled-table"); //adiciona classe css
+		//table.setAttribute("id","data-table");//adiciona id(seria usado para fazer uma tabela com paginação, mas não consegui implementar)
+
+		var tr = table.insertRow(-1); //insere na tabela uma linha que vai receber os headers
+
+        for (var i = 0; i < 2; i++) {
+            var th = document.createElement("th"); 
+			if(i == 0){th.innerHTML = 'ID';}else{th.innerHTML= 'DESTINATION'} //insere headers na linha
+            tr.appendChild(th);
+        }
+
+		for (var i = 0; i < data.length; i++) { //inserir os dados de cada entrada do json na tabela
+			tr = table.insertRow(-1); //cria linha
+
+			for (var j = 0; j < col.length; j++) { //pra cada item do json, adiciona seus valores nas respectivas colunas da tabela
+				var tabCell = tr.insertCell(-1);
+				tabCell.innerHTML = data[i][col[j]];
+			}
+			id = data[i]['DTN_ID']; //guardando o id desta linha da tabela para ser armazenado nos botão de editar e deletar
+
+			for(let i = 0; i < 2; i ++){//adiciona os botões de editar e deletar na linha atual
+				var button =document.createElement("button");
+				button.value = id; //guarda o id da linha nos botões
+				if (i ==0){
+					button.innerHTML = "edit";
+					button.addEventListener("click",show_edit_modal); //vincula o botão de editar a função que mostra o modal de edição
+				}else{
+					button.innerHTML = "delete";
+					button.addEventListener("click",delete_id); //vincula o botão de deletar a função que implementa o delete request
+				}				
+				var tabCell = tr.insertCell(-1); 
+				tabCell.appendChild(button);//adiciona o botão na linha
+			}
+
+		}
+
+		// coloca a tabela no documento
+		var divContainer = document.getElementById("showData");
+        divContainer.innerHTML = "";
+        divContainer.appendChild(table);
+
+	}
+
+	function ConvertToCSV() { //função que pega o estado atual da tabela e faz um post request pro server transformar em .csv
+		url ='http://localhost:3000/destination/'
+		fetch(url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(data_to_save)
+		}).then( response =>{
+			console.log(response.status);
+		}).catch( err =>{
+			console.error(err);
+		});
+
+		download_csv(); //pede ao server para enviar o arquivo.csv
+	}
+
+	function download_csv(){
+		window.open('http://localhost:3000/downloadFile'); //abre o link de download do arquivo do server
+	}
+	get();//get para desenhar a tabela assim que a página for inicializada
+</script>
+</html>
